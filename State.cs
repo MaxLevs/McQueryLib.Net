@@ -5,6 +5,9 @@ namespace MCQueryLib
 {
     public class State
     {
+        public byte Type { get; set; }
+        public byte[] SessionId { get; set; }
+        
         public string Modt { get; set; }
         public string GameType { get; set; }
         public string GameId { get; set; }
