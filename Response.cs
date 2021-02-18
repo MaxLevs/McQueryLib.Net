@@ -61,6 +61,7 @@ namespace MCQueryLib
                 if (data[pointer] == 0)
                 {
                     buffer.Clear();
+                    pointer++;
                     break;
                 }
                 
@@ -87,11 +88,12 @@ namespace MCQueryLib
                 {
                     var name = new string(buffer.ToArray());
                     buffer.Clear();
-
+                    
                     if (name == "")
                     {
                         break;
                     }
+                    
                     players.Add(name);
                     pointer++;
                 }
