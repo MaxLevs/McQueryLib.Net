@@ -16,37 +16,7 @@ namespace MCQueryLib
         public string Map { get; set; }
         public int NumPlayers { get; set; }
         public int MaxPlayers { get; set; }
-
-        private string[] _players = null;
-        public string[] Players
-        {
-            get => _players;
-
-            set
-            {
-                if (_players != null)
-                {
-                    foreach (var player in _players)
-                    {
-                        if (!value.Contains(player))
-                        {
-                            // emit Log out event
-                        }
-                    }
-                    
-                    foreach (var player in value)
-                    {
-                        if (!_players.Contains(player))
-                        {
-                            // emit Log in event
-                        }
-                    }
-                }
-                
-                _players = value;
-            }
-        }
-
+        public string[] Players { get; set; }
         public int HostPort { get; set; }
         public string HostIp { get; set; }
     }

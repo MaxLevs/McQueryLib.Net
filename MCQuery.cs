@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace MCQueryLib
 {
@@ -24,16 +25,24 @@ namespace MCQueryLib
 
         public void TryConnect()
         {
-            try
+            bool connected = false;
+            while (!connected)
             {
-                Client.Connect(HostPort);
-            }
-            
-            catch (Exception)
-            {
-                Client.Close();
-                Online = false;
-                // retry connection later
+                try
+                {
+                    Console.WriteLine($"[INFO] Trying to connect to {HostPort}");
+                    Client.Connect(HostPort);
+                    connected = true;
+                }
+                
+                catch (SocketException)
+                {
+                    connected = false;
+                    Client.Close();
+                    Online = false;
+                }
+                
+                Thread.Sleep(5000);
             }
             
             Handshake();
@@ -41,64 +50,71 @@ namespace MCQueryLib
 
         public void Handshake()
         {
+            Console.WriteLine($"[INFO] Handshake with {HostPort}");
             var req = new Request(RequestType.Handshake);
             byte[] package = req.GetBytes();
             try
             {
                 Client.Send(package, package.Length);
+                var ipEndPoint = HostPort;
+                var data = Client.Receive(ref ipEndPoint);
+                ChallengeToken = Response.ParseChallenge(data).ChallengeToken;
+                Console.WriteLine($"[INFO] [{HostPort}] Received ChallengeToken: {BitConverter.ToString(ChallengeToken)}");
             }
-            catch (Exception e)
+            catch (SocketException)
             {
-                // retry connection later
+                Online = false;
+                TryConnect();
+                return;
             }
-            
-            var ipEndPoint = HostPort;
-            var data = Client.Receive(ref ipEndPoint);
-            ChallengeToken = Response.ParseChallenge(data).ChallengeToken;
             
             Online = true;
         }
 
         public State GetBasicStat()
         {
+            Console.WriteLine($"[INFO] [{HostPort}] Sending basic status request...");
             var req = new Request(RequestType.BasicStats, ChallengeToken);
             byte[] package = req.GetBytes();
             try
             {
                 Client.Send(package, package.Length);
+
+                var ipEndPoint = HostPort;
+                var data = Client.Receive(ref ipEndPoint);
+
+                Console.WriteLine($"[INFO] [{ipEndPoint}] Received basic status");
+                return Response.ParseBasicState(data);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
                 Online = false;
                 Handshake();
                 return GetBasicStat();
             }
-
-            var ipEndPoint = HostPort;
-            var data = Client.Receive(ref ipEndPoint);
-
-            return Response.ParseBasicState(data);
         }
 
         public State GetFullStat()
         {
+            Console.WriteLine($"[INFO] [{HostPort}] Sending full status request...");
             var req = new Request(RequestType.FullStats, ChallengeToken);
             byte[] package = req.GetBytes();
             try
             {
                 Client.Send(package, package.Length);
+
+                var ipEndPoint = HostPort;
+                var data = Client.Receive(ref ipEndPoint);
+
+                Console.WriteLine($"[INFO] [{ipEndPoint}] Received full status");
+                return Response.ParseFullState(data);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
                 Online = false;
                 Handshake();
                 return GetFullStat();
             }
-
-            var ipEndPoint = HostPort;
-            var data = Client.Receive(ref ipEndPoint);
-
-            return Response.ParseFullState(data);
         }
     }
 }
