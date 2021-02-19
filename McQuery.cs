@@ -16,7 +16,7 @@ namespace MCQueryLib
     /// </summary>
     public class McQuery
     {
-        public string Host { get; }
+        public IPAddress Host { get; }
         public int Port { get; }
         
         private UdpClient _udpClient = null;
@@ -25,7 +25,7 @@ namespace MCQueryLib
         private object _challengeTokenLock = new();
         private byte[] _challengeToken = null;
 
-        public bool IsOnline { get; private set; } = false;
+        public bool IsOnline { get; set; } = true;
 
         private void SetChallengeToken(byte[] challengeToken)
         {
@@ -36,7 +36,7 @@ namespace MCQueryLib
             }
         }
         
-        public McQuery(string host, int queryPort)
+        public McQuery(IPAddress host, int queryPort)
         {
             Host = host;
             Port = queryPort;
@@ -46,7 +46,7 @@ namespace MCQueryLib
         {
             _udpClient?.Dispose();
             _udpClient = null;
-            _udpClient = new UdpClient(Host, Port);
+            _udpClient = new UdpClient(Host.ToString(), Port);
         }
 
         public async Task<byte[]> GetHandshake()
