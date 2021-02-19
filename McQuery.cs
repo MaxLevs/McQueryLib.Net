@@ -120,7 +120,26 @@ namespace MCQueryLib
         }
     }
 
-    public class McQueryServerIsOffline : Exception
+    public class McQueryException : Exception
+    {
+        public McQueryException()
+        {
+        }
+
+        protected McQueryException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        public McQueryException(string? message) : base(message)
+        {
+        }
+
+        public McQueryException(string? message, Exception? innerException) : base(message, innerException)
+        {
+        }
+    }
+    
+    public class McQueryServerIsOffline : McQueryException
     {
         public McQuery Query { get; }
         public McQueryServerIsOffline(McQuery mcQuery)
@@ -148,6 +167,36 @@ namespace MCQueryLib
 
         public McQuerySocketIsNotInitialised(string? message, Exception? innerException) : base(message, innerException)
         {
+        }
+    }
+
+    public class McQueryWrongResponseException : McQueryException
+    {
+        public Request Request { get; }
+        public byte[] Response { get; }
+
+        public McQueryWrongResponseException(Request request, byte[] response)
+        {
+            Request = request;
+            Response = response;
+        }
+
+        protected McQueryWrongResponseException(SerializationInfo info, StreamingContext context, Request request, byte[] response) : base(info, context)
+        {
+            Request = request;
+            Response = response;
+        }
+
+        public McQueryWrongResponseException(string? message, Request request, byte[] response) : base(message)
+        {
+            Request = request;
+            Response = response;
+        }
+
+        public McQueryWrongResponseException(string? message, Exception? innerException, Request request, byte[] response) : base(message, innerException)
+        {
+            Request = request;
+            Response = response;
         }
     }
 }

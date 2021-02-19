@@ -18,6 +18,8 @@ namespace MCQueryLib.Packages
         
         private Request(){}
 
+        public byte RequestType => Data[2];
+
         public static Request GetHandshakeRequest(SessionId sessionId)
         {
             var request = new Request();
