@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using MCQueryLib.Data;
 
 namespace MCQueryLib.Packages
@@ -32,6 +34,11 @@ namespace MCQueryLib.Packages
 
         public static Request GetBasicStatusRequest(byte[] challengeToken)
         {
+            if (challengeToken == null)
+            {
+                throw new ChallengeTokenIsNullException();
+            }
+                
             var request = new Request();
             
             var data = new List<byte>();
@@ -46,6 +53,11 @@ namespace MCQueryLib.Packages
         
         public static Request GetFullStatusRequest(byte[] challengeToken)
         {
+            if (challengeToken == null)
+            {
+                throw new ChallengeTokenIsNullException();
+            }
+            
             var request = new Request();
             
             var data = new List<byte>();
@@ -57,6 +69,25 @@ namespace MCQueryLib.Packages
             
             request.Data = data.ToArray();
             return request;
+        }
+    }
+
+    public class ChallengeTokenIsNullException : Exception
+    {
+        public ChallengeTokenIsNullException()
+        {
+        }
+
+        protected ChallengeTokenIsNullException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        public ChallengeTokenIsNullException(string? message) : base(message)
+        {
+        }
+
+        public ChallengeTokenIsNullException(string? message, Exception? innerException) : base(message, innerException)
+        {
         }
     }
 }
