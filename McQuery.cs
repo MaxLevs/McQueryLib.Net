@@ -185,30 +185,33 @@ namespace MCQueryLib
     public class McQueryWrongResponseException : McQueryException
     {
         public Request Request { get; }
-        public byte[] Response { get; }
+        public byte[] ReceivedResponse { get; }
 
-        public McQueryWrongResponseException(Request request, byte[] response)
+        public override string Message { get; }
+
+        public McQueryWrongResponseException(Request request, byte[] receivedResponse)
         {
             Request = request;
-            Response = response;
+            ReceivedResponse = receivedResponse;
+            Message = $"Response is wrong. Expected type: {request.RequestType}. Received package with type: {Response.ParseType(receivedResponse)}" + base.Message;
         }
 
-        protected McQueryWrongResponseException(SerializationInfo info, StreamingContext context, Request request, byte[] response) : base(info, context)
+        protected McQueryWrongResponseException(SerializationInfo info, StreamingContext context, Request request, byte[] receivedResponse) : base(info, context)
         {
             Request = request;
-            Response = response;
+            ReceivedResponse = receivedResponse;
         }
 
-        public McQueryWrongResponseException(string? message, Request request, byte[] response) : base(message)
+        public McQueryWrongResponseException(string? message, Request request, byte[] receivedResponse) : base(message)
         {
             Request = request;
-            Response = response;
+            ReceivedResponse = receivedResponse;
         }
 
-        public McQueryWrongResponseException(string? message, Exception? innerException, Request request, byte[] response) : base(message, innerException)
+        public McQueryWrongResponseException(string? message, Exception? innerException, Request request, byte[] receivedResponse) : base(message, innerException)
         {
             Request = request;
-            Response = response;
+            ReceivedResponse = receivedResponse;
         }
     }
 }
