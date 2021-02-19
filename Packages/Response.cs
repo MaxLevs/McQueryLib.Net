@@ -30,7 +30,7 @@ namespace MCQueryLib.Packages
 	    }
 	    
 	    /// <summary>
-	    /// Parse response package and get ChallengeToken
+	    /// Parses response package and returns ChallengeToken
 	    /// </summary>
 	    /// <param name="data">byte[] package</param>
 	    /// <returns>byte[] array which contains ChallengeToken as big-endian</returns>

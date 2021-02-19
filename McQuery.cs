@@ -102,7 +102,7 @@ namespace MCQueryLib
             Request basicStatusRequest = Request.GetBasicStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
             
-            // todo: causes package to skip. Rewrite to automatic pick response by raw
+            // todo: causes receiver to skip package. Rewrite to automatic pick response by raw
             if (basicStatusRequest.RequestType != Response.ParseType(response))
                 throw new McQueryWrongResponseException(basicStatusRequest, response);
             
@@ -123,7 +123,7 @@ namespace MCQueryLib
             Request fullStatusRequest = Request.GetFullStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
 
-            // todo: causes package to skip. Rewrite to automatic pick response by raw
+            // todo: causes receiver to skip package. Rewrite to automatic pick response by raw
             if (fullStatusRequest.RequestType != Response.ParseType(response))
                 throw new McQueryWrongResponseException(fullStatusRequest, response);
             
