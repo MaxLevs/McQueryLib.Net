@@ -2,8 +2,8 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
+using MCQueryLib.Data;
 using MCQueryLib.Packages;
 using MCQueryLib.State;
 using UdpExtension;
@@ -18,6 +18,7 @@ namespace MCQueryLib
     {
         public IPAddress Host { get; }
         public int Port { get; }
+        public SessionId SessionId { get; } = SessionId.GenerateRandomId();
         
         private UdpClient _udpClient = null;
         public int ResponseWaitIntervalSecond = 10;
@@ -72,7 +73,7 @@ namespace MCQueryLib
             if (_udpClient == null)
                 throw new McQuerySocketIsNotInitialised(this);
             
-            Request handshakeRequest = Request.GetHandshakeRequest();
+            Request handshakeRequest = Request.GetHandshakeRequest(SessionId);
             var response = await SendResponseService.SendReceive(_udpClient, handshakeRequest.Data, ResponseWaitIntervalSecond);
 
             var challengeToken = Response.ParseHandshake(response);
@@ -94,7 +95,7 @@ namespace MCQueryLib
             if (challengeToken == null)
                 throw new McQueryServerIsOffline(this);
             
-            Request basicStatusRequest = Request.GetBasicStatusRequest(challengeToken);
+            Request basicStatusRequest = Request.GetBasicStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
             
             var basicStatus = Response.ParseBasicState(response);
@@ -111,7 +112,7 @@ namespace MCQueryLib
 
             var challengeToken = GetChallengeToken();
             
-            Request fullStatusRequest = Request.GetFullStatusRequest(challengeToken);
+            Request fullStatusRequest = Request.GetFullStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
 
             var fullStatus = Response.ParseFullState(response);
