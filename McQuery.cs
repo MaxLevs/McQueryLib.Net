@@ -35,6 +35,24 @@ namespace MCQueryLib
                 Buffer.BlockCopy(challengeToken, 0, _challengeToken, 0, 4);
             }
         }
+
+        private byte[] GetChallengeToken()
+        {
+            lock (_challengeTokenLock)
+            {
+                if (_challengeToken == null) 
+                    return null;
+            }
+                
+            var challengeToken = new byte[4];
+            
+            lock (_challengeTokenLock)
+            {
+                Buffer.BlockCopy(_challengeToken, 0, challengeToken, 0, 4);
+            }
+
+            return challengeToken;
+        }
         
         public McQuery(IPAddress host, int queryPort)
         {
@@ -56,7 +74,7 @@ namespace MCQueryLib
             
             Request handshakeRequest = Request.GetHandshakeRequest();
             var response = await SendResponseService.SendReceive(_udpClient, handshakeRequest.Data, ResponseWaitIntervalSecond);
-            
+
             var challengeToken = Response.ParseHandshake(response);
             SetChallengeToken(challengeToken);
             
@@ -70,12 +88,11 @@ namespace MCQueryLib
 
             if (!IsOnline)
                 throw new McQueryServerIsOffline(this);
+
+            var challengeToken = GetChallengeToken();
             
-            var challengeToken = new byte[4];
-            lock (_challengeTokenLock)
-            {
-                Buffer.BlockCopy(_challengeToken, 0, challengeToken, 0, 4);
-            }
+            if (challengeToken == null)
+                throw new McQueryServerIsOffline(this);
             
             Request basicStatusRequest = Request.GetBasicStatusRequest(challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
@@ -91,12 +108,8 @@ namespace MCQueryLib
 
             if (!IsOnline)
                 throw new McQueryServerIsOffline(this);
-            
-            var challengeToken = new byte[4];
-            lock (_challengeTokenLock)
-            {
-                Buffer.BlockCopy(_challengeToken, 0, challengeToken, 0, 4);
-            }
+
+            var challengeToken = GetChallengeToken();
             
             Request fullStatusRequest = Request.GetFullStatusRequest(challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
