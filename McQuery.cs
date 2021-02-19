@@ -76,6 +76,10 @@ namespace MCQueryLib
             Request handshakeRequest = Request.GetHandshakeRequest(SessionId);
             var response = await SendResponseService.SendReceive(_udpClient, handshakeRequest.Data, ResponseWaitIntervalSecond);
 
+            // todo: causes package to skip. Rewrite to automatic pick response by raw
+            if (handshakeRequest.RequestType != Response.ParseType(response))
+                throw new McQueryWrongResponseException(handshakeRequest, response);
+
             var challengeToken = Response.ParseHandshake(response);
             SetChallengeToken(challengeToken);
             
@@ -98,6 +102,10 @@ namespace MCQueryLib
             Request basicStatusRequest = Request.GetBasicStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
             
+            // todo: causes package to skip. Rewrite to automatic pick response by raw
+            if (basicStatusRequest.RequestType != Response.ParseType(response))
+                throw new McQueryWrongResponseException(basicStatusRequest, response);
+            
             var basicStatus = Response.ParseBasicState(response);
             return basicStatus;
         }
@@ -115,6 +123,10 @@ namespace MCQueryLib
             Request fullStatusRequest = Request.GetFullStatusRequest(SessionId, challengeToken);
             var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
 
+            // todo: causes package to skip. Rewrite to automatic pick response by raw
+            if (fullStatusRequest.RequestType != Response.ParseType(response))
+                throw new McQueryWrongResponseException(fullStatusRequest, response);
+            
             var fullStatus = Response.ParseFullState(response);
             return fullStatus;
         }
@@ -148,7 +160,7 @@ namespace MCQueryLib
         }
     }
 
-    public class McQuerySocketIsNotInitialised : Exception
+    public class McQuerySocketIsNotInitialised : McQueryException
     {
         public McQuery Query { get; }
         
