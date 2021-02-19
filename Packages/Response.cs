@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using MCQueryLib.Data;
 using MCQueryLib.State;
@@ -20,6 +21,9 @@ namespace MCQueryLib.Packages
 	    
 	    public static SessionId ParseSessionId(byte[] data)
 	    {
+		    if (data.Length < 1)
+			    throw new IncorrectPackageDataException(data);
+		    
 			var sessionIdBytes = new byte[4];
 			Buffer.BlockCopy(data, 1, sessionIdBytes, 0, 4);
 			return new SessionId(sessionIdBytes);
@@ -32,6 +36,9 @@ namespace MCQueryLib.Packages
 	    /// <returns>byte[] array which contains ChallengeToken as big-endian</returns>
         public static byte[] ParseHandshake(byte[] data)
         {
+		    if (data.Length < 5)
+			    throw new IncorrectPackageDataException(data);
+		    
             var response = BitConverter.GetBytes(int.Parse(Encoding.ASCII.GetString(data, 5, data.Length - 6)));
             if (BitConverter.IsLittleEndian)
             {
@@ -128,5 +135,30 @@ namespace MCQueryLib.Packages
 
             return fullState;
         }
+    }
+
+    public class IncorrectPackageDataException : Exception
+    {
+	    public byte[] data { get; }
+
+	    public IncorrectPackageDataException(byte[] data)
+	    {
+		    this.data = data;
+	    }
+
+	    protected IncorrectPackageDataException(SerializationInfo info, StreamingContext context, byte[] data) : base(info, context)
+	    {
+		    this.data = data;
+	    }
+
+	    public IncorrectPackageDataException(string? message, byte[] data) : base(message)
+	    {
+		    this.data = data;
+	    }
+
+	    public IncorrectPackageDataException(string? message, Exception? innerException, byte[] data) : base(message, innerException)
+	    {
+		    this.data = data;
+	    }
     }
 }
