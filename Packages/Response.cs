@@ -1,6 +1,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -51,87 +53,122 @@ namespace MCQueryLib.Packages
 
         public static ServerBasicState ParseBasicState(byte[] data)
         {
-			if (data.Length != 0)
+	        if (data.Length <= 5)
+		        throw new IncorrectPackageDataException(data);
+
+	        var statusValues = new Queue<string>();
+	        short port = -1;
+
+	        data = data.Skip(5).ToArray(); // Skip Type + SessionId
+	        var stream = new MemoryStream(data);
+
+            var sb = new StringBuilder();
+            int currentByte;
+            int counter = 0;
+            while ((currentByte = stream.ReadByte()) != -1)
+            {
+	            if (counter > 6) break;
+	            
+	            if (counter == 5)
+	            {
+					byte[] portBuffer = {(byte) currentByte, (byte) stream.ReadByte()};
+					if (!BitConverter.IsLittleEndian)
+						portBuffer = portBuffer.Reverse().ToArray();
+					
+					port = BitConverter.ToInt16(portBuffer); // Little-endian short
+					counter++;
+					
+		            continue;
+	            }
+	            
+	            if (currentByte == 0x00)
+	            {
+		            string fieldValue = sb.ToString();
+		            statusValues.Enqueue(fieldValue);
+		            sb.Clear();
+		            counter++;
+	            }
+	            else sb.Append((char)currentByte);   
+            }
+
+			var serverInfo = new ServerBasicState
 			{
-				data = data.Skip(5).ToArray();
-
-				string stringData = Encoding.ASCII.GetString(data);
-				string[] informations = stringData.Split(new string[] { "\0" }, StringSplitOptions.None);
-
-				//0 = MOTD
-				//1 = GameType
-				//2 = Map
-				//3 = Number of Players
-				//4 = Maxnumber of Players
-				//5 = Host Port
-				//6 = Host IP
-
-				if (informations[5].StartsWith(":k"))
-				{
-					informations[5] = informations[5].Substring(2);
-				}
-
-				var serverInfo = new ServerBasicState
-				{
-					Motd = informations[0],
-					GameType = informations[1],
-					Map = informations[2],
-					PlayerCount = int.Parse(informations[3]),
-					MaxPlayers = int.Parse(informations[4]),
-					Address = informations[5],
-					Port = informations[6] //TODO: Port is currently missing... It needs to be fixed.
-				};
-
-				return serverInfo;
-			}
-
-			return null;
+				Motd = statusValues.Dequeue(),
+				GameType = statusValues.Dequeue(),
+				Map = statusValues.Dequeue(),
+				NumPlayers = int.Parse(statusValues.Dequeue()),
+				MaxPlayers = int.Parse(statusValues.Dequeue()),
+				HostPort = port,
+				HostIp = statusValues.Dequeue(),
+			};
+			
+			return serverInfo;
         }
         
         public static ServerFullState ParseFullState(byte[] data)
         {
-			data = data.Skip(16).ToArray();
+			var statusKeyValues = new Dictionary<string, string>();
+            var players = new List<string>();
 
-			string stringData = Encoding.ASCII.GetString(data);
+            var buffer = new byte[256];
+            Stream stream = new MemoryStream(data);
 
-			//This array should contain an array with server informations and an array with playernames
-			string[] informations = stringData.Split(new[] {"player_\0\0"}, StringSplitOptions.None);
+            stream.Read(buffer, 0, 5);// Read Type + SessionID
+            stream.Read(buffer, 0, 11); // Padding: 11 bytes constant
+            var constant1 = new byte[] { 0x73, 0x70, 0x6C, 0x69, 0x74, 0x6E, 0x75, 0x6D, 0x00, 0x80, 0x00 };
+            for (int i = 0; i < constant1.Length; i++) Debug.Assert(constant1[i] == buffer[i], "Byte mismatch at " + i + " Val :" + buffer[i]);
 
-			string[] serverInfoArr = informations[0].Split(new[] { "\0" }, StringSplitOptions.None);
-			
-			// todo: something goes wrong here, may be player field is undefined
-			string[] playerList = informations[1].Split(new[] { "\0" }, StringSplitOptions.None)
-				.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+            var sb = new StringBuilder();
+            string lastKey = string.Empty;
+            int currentByte;
+            while ((currentByte = stream.ReadByte()) != -1)
+            {
+                if (currentByte == 0x00)
+                {
+                    if (!string.IsNullOrEmpty(lastKey))
+                    {
+                        statusKeyValues.Add(lastKey, sb.ToString());
+                        lastKey = string.Empty;
+                    }
+                    else
+                    {
+                        lastKey = sb.ToString();
+                        if (string.IsNullOrEmpty(lastKey)) break;
+                    }
+                    sb.Clear();
+                }
+                else sb.Append((char)currentByte);
+            }
 
-			//Split serverInfo to key - value pair.
+            stream.Read(buffer, 0, 10); // Padding: 10 bytes constant
+            var constant2 = new byte[] { 0x01, 0x70, 0x6C, 0x61, 0x79, 0x65, 0x72, 0x5F, 0x00, 0x00 };
+            for (int i = 0; i < constant2.Length; i++) Debug.Assert(constant2[i] == buffer[i], "Byte mismatch at " + i + " Val :" + buffer[i]);
 
-			Dictionary<string, string> serverDict = new Dictionary<string, string>();
-
-			for (int i = 0; i < serverInfoArr.Length; i += 2)
+            while ((currentByte = stream.ReadByte()) != -1)
+            {
+                if (currentByte == 0x00)
+                {
+                    var player = sb.ToString();
+                    if (string.IsNullOrEmpty(player)) break;
+                    players.Add(player);
+                    sb.Clear();
+                }
+                else sb.Append((char)currentByte);
+            }
+            
+			ServerFullState fullState = new()
 			{
-				serverDict.Add(serverInfoArr[i], serverInfoArr[i + 1]);
-			}
-
-			//0 = MOTD
-			//1 = GameType
-			//2 = Map
-			//3 = Number of Players
-			//4 = Maxnumber of Players
-			//5 = Host Port
-			//6 = Host IP
-
-			ServerFullState fullState = new ServerFullState
-			{
-				Motd = serverDict["hostname"],
-				GameType = serverDict["gametype"],
-				Map = serverDict["map"],
-				PlayerCount = int.Parse(serverDict["numplayers"]),
-				MaxPlayers = int.Parse(serverDict["maxplayers"]),
-				PlayerList =  playerList,
-				Plugins = serverDict["plugins"],
-				Address = serverDict["hostip"],
-				Port = int.Parse(serverDict["hostport"]),
-				Version = serverDict["version"]
+				Motd = statusKeyValues["hostname"],
+				GameType = statusKeyValues["gametype"],
+				GameId = statusKeyValues["game_id"],
+				Version = statusKeyValues["version"],
+				Plugins = statusKeyValues["plugins"],
+				Map = statusKeyValues["map"],
+				NumPlayers = int.Parse(statusKeyValues["numplayers"]),
+				MaxPlayers = int.Parse(statusKeyValues["maxplayers"]),
+				PlayerList =  players.ToArray(),
+				HostIp = statusKeyValues["hostip"],
+				HostPort = int.Parse(statusKeyValues["hostport"]),
 			};
 
             return fullState;
