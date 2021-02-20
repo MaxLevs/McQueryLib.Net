@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -64,7 +65,6 @@ namespace MCQueryLib
         public void InitSocket()
         {
             _udpClient?.Dispose();
-            _udpClient = null;
             _udpClient = new UdpClient(Host.ToString(), Port);
         }
 
