@@ -175,29 +175,27 @@ namespace MCQueryLib.Packages
 	}
 
 	public class IncorrectPackageDataException : Exception
-    {
-	    public byte[] data { get; }
+	{
+		public byte[] data { get; }
 
-	    public IncorrectPackageDataException(byte[] data)
-	    {
-		    this.data = data;
-	    }
+		public IncorrectPackageDataException(byte[] data)
+		{
+			this.data = data;
+		}
 
-	    protected IncorrectPackageDataException(SerializationInfo info, StreamingContext context, byte[] data) : base(
-		    info, context)
-	    {
-		    this.data = data;
-	    }
+		protected IncorrectPackageDataException(SerializationInfo info, StreamingContext context, byte[] data) : base(info, context)
+		{
+			this.data = data;
+		}
 
-	    public IncorrectPackageDataException(string? message, byte[] data) : base(message)
-	    {
-		    this.data = data;
-	    }
+		public IncorrectPackageDataException(string? message, byte[] data) : base(message)
+		{
+			this.data = data;
+		}
 
-	    public IncorrectPackageDataException(string? message, Exception? innerException, byte[] data) : base(message,
-		    innerException)
-	    {
-		    this.data = data;
-	    }
-    }
+		public IncorrectPackageDataException(string? message, Exception? innerException, byte[] data) : base(message, innerException)
+		{
+			this.data = data;
+		}
+	}
 }
