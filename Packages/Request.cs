@@ -25,16 +25,16 @@ namespace MCQueryLib.Packages
         {
             var request = new Request();
             
-            var data = new List<byte>();
+            var data = new List<byte>(224);
             data.AddRange(Magic);
             data.AddRange(Challenge);
-            data.AddRange(sessionId.GetBytes());
+            sessionId.WriteTo(data);
             
             request.Data = data.ToArray();
             return request;
         }
 
-        public static Request GetBasicStatusRequest(SessionId sessionId, byte[] challengeToken)
+        public static Request GetBasicStatusRequest(SessionId sessionId, ChallengeToken challengeToken)
         {
             if (challengeToken == null)
             {
@@ -43,17 +43,17 @@ namespace MCQueryLib.Packages
                 
             var request = new Request();
             
-            var data = new List<byte>();
+            var data = new List<byte>(416);
             data.AddRange(Magic);
             data.AddRange(Status);
-            data.AddRange(sessionId.GetBytes());
-            data.AddRange(challengeToken);
+            sessionId.WriteTo(data);
+            challengeToken.WriteTo(data);
             
             request.Data = data.ToArray();
             return request;
         }
         
-        public static Request GetFullStatusRequest(SessionId sessionId, byte[] challengeToken)
+        public static Request GetFullStatusRequest(SessionId sessionId, ChallengeToken challengeToken)
         {
             if (challengeToken == null)
             {
@@ -62,11 +62,11 @@ namespace MCQueryLib.Packages
             
             var request = new Request();
             
-            var data = new List<byte>();
+            var data = new List<byte>(544);
             data.AddRange(Magic);
             data.AddRange(Status);
-            data.AddRange(sessionId.GetBytes());
-            data.AddRange(challengeToken);
+            sessionId.WriteTo(data);
+            challengeToken.WriteTo(data);
             data.AddRange(new byte[] {0x00, 0x00, 0x00, 0x00}); // Padding
             
             request.Data = data.ToArray();

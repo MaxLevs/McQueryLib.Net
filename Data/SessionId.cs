@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace MCQueryLib.Data
 {
@@ -16,11 +16,12 @@ namespace MCQueryLib.Data
             _sessionId = sessionId;
         }
 
-        public static SessionId GenerateRandomId()
+        public static SessionId GenerateRandomId(Random rnd)
         {
             var sessionId = new byte[4];
-            new Random().NextBytes(sessionId);
-            sessionId = sessionId.Select(@byte => (byte)(@byte & 0x0F)).ToArray();
+            rnd.NextBytes(sessionId);
+            for (var i = 0; i < sessionId.Length; ++i)
+                sessionId[i] &= 0x0F;
             return new SessionId(sessionId);
         }
 
@@ -31,9 +32,14 @@ namespace MCQueryLib.Data
 
         public byte[] GetBytes()
         {
-            var sessionId = new byte[4];
-            Buffer.BlockCopy(_sessionId, 0, sessionId, 0, 4);
-            return sessionId;
+            var sessionIdSnapshot = new byte[4];
+            Buffer.BlockCopy(_sessionId, 0, sessionIdSnapshot, 0, 4);
+            return sessionIdSnapshot;
+        }
+
+        public void WriteTo(List<byte> list)
+        {
+            list.AddRange(_sessionId);
         }
     }
 }

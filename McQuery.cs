@@ -3,6 +3,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using MCQueryLib.Data;
 using MCQueryLib.Packages;
@@ -19,71 +20,73 @@ namespace MCQueryLib
     {
         public IPAddress Host { get; }
         public int Port { get; }
-        public SessionId SessionId { get; } = SessionId.GenerateRandomId();
-        
-        private UdpClient _udpClient = null;
+        public SessionId SessionId { get; }
+
+        private UdpClient _udpClient;
         public int ResponseWaitIntervalSecond = 10;
-        
+
         private object _challengeTokenLock = new();
-        private byte[] _challengeToken = null;
+        private ChallengeToken _challengeToken;
 
-        public bool IsOnline { get; set; } = true;
+        public bool IsOnline { get; set; } = false;
 
-        private void SetChallengeToken(byte[] challengeToken)
-        {
-            lock (_challengeTokenLock)
-            {
-                _challengeToken ??= new byte[4];
-                Buffer.BlockCopy(challengeToken, 0, _challengeToken, 0, 4);
-            }
-        }
-
-        private byte[] GetChallengeToken()
-        {
-            lock (_challengeTokenLock)
-            {
-                if (_challengeToken == null) 
-                    return null;
-            }
-                
-            var challengeToken = new byte[4];
-            
-            lock (_challengeTokenLock)
-            {
-                Buffer.BlockCopy(_challengeToken, 0, challengeToken, 0, 4);
-            }
-
-            return challengeToken;
-        }
-        
-        public McQuery(IPAddress host, int queryPort)
+        public McQuery(IPAddress host, int queryPort, Random rnd)
         {
             Host = host;
             Port = queryPort;
+            SessionId = SessionId.GenerateRandomId(rnd);
         }
 
         public void InitSocket()
         {
-            _udpClient?.Dispose();
-            _udpClient = new UdpClient(Host.ToString(), Port);
+            try
+            {
+                _udpClient?.Dispose();
+                _udpClient = new UdpClient(Host.ToString(), Port);
+            }
+            
+            catch (ObjectDisposedException)
+            {
+                
+            }
         }
 
         public async Task<byte[]> GetHandshake()
         {
             if (_udpClient == null)
                 throw new McQuerySocketIsNotInitialised(this);
-            
-            Request handshakeRequest = Request.GetHandshakeRequest(SessionId);
-            var response = await SendResponseService.SendReceive(_udpClient, handshakeRequest.Data, ResponseWaitIntervalSecond);
 
-            // todo: causes package to skip. Rewrite to automatic pick response by raw
-            if (handshakeRequest.RequestType != Response.ParseType(response))
-                throw new McQueryWrongResponseException(handshakeRequest, response);
+            int times = 0;
+            while (true)
+            {
+                try
+                {
+                    Request handshakeRequest = Request.GetHandshakeRequest(SessionId);
+                    var response = await SendResponseService.SendReceive(_udpClient, handshakeRequest.Data,
+                            ResponseWaitIntervalSecond);
 
-            var challengeToken = Response.ParseHandshake(response);
-            SetChallengeToken(challengeToken);
-            
-            return challengeToken;
+                    if (handshakeRequest.RequestType != Response.ParseType(response))
+                        throw new McQueryWrongResponseException(handshakeRequest, response);
+
+                    var challengeToken = Response.ParseHandshake(response);
+                    _challengeToken = new ChallengeToken(challengeToken);
+
+                    return challengeToken;
+                }
+
+                catch (ObjectDisposedException)
+                {
+                    ++times;
+
+                    if (times > 5)
+                    {
+                        throw;
+                    }
+                    
+                    Thread.Sleep(800);
+                }
+            }
+
         }
 
         public async Task<ServerBasicState> GetBasicStatus()
@@ -93,21 +96,40 @@ namespace MCQueryLib
 
             if (!IsOnline)
                 throw new McQueryServerIsOffline(this);
+            
+            ChallengeToken challengeToken;
+            lock (_challengeTokenLock)
+            {
+                challengeToken = _challengeToken ?? throw new McQueryServerIsOffline(this);
+            }
 
-            var challengeToken = GetChallengeToken();
-            
-            if (challengeToken == null)
-                throw new McQueryServerIsOffline(this);
-            
-            Request basicStatusRequest = Request.GetBasicStatusRequest(SessionId, challengeToken);
-            var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
-            
-            // todo: causes receiver to skip package. Rewrite to automatic pick response by raw
-            if (basicStatusRequest.RequestType != Response.ParseType(response))
-                throw new McQueryWrongResponseException(basicStatusRequest, response);
-            
-            var basicStatus = Response.ParseBasicState(response);
-            return basicStatus;
+            int times = 0;
+            while (true)
+            {
+                try
+                {
+                    Request basicStatusRequest = Request.GetBasicStatusRequest(SessionId, challengeToken);
+                    var response = await SendResponseService.SendReceive(_udpClient, basicStatusRequest.Data, ResponseWaitIntervalSecond);
+                    
+                    if (basicStatusRequest.RequestType != Response.ParseType(response))
+                        throw new McQueryWrongResponseException(basicStatusRequest, response);
+                    
+                    var basicStatus = Response.ParseBasicState(response);
+                    return basicStatus;
+                }
+
+                catch (ObjectDisposedException)
+                {
+                    ++times;
+
+                    if (times > 5)
+                    {
+                        throw;
+                    }
+                    
+                    Thread.Sleep(800);
+                }
+            }
         }
         
         public async Task<ServerFullState> GetFullStatus()
@@ -118,17 +140,39 @@ namespace MCQueryLib
             if (!IsOnline)
                 throw new McQueryServerIsOffline(this);
 
-            var challengeToken = GetChallengeToken();
+            ChallengeToken challengeToken;
+            {
+                challengeToken = _challengeToken;
+            }
             
-            Request fullStatusRequest = Request.GetFullStatusRequest(SessionId, challengeToken);
-            var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
+            int times = 0;
+            while (true)
+            {
+                try
+                {
+                    Request fullStatusRequest = Request.GetFullStatusRequest(SessionId, challengeToken);
+                    var response = await SendResponseService.SendReceive(_udpClient, fullStatusRequest.Data, ResponseWaitIntervalSecond);
 
-            // todo: causes receiver to skip package. Rewrite to automatic pick response by raw
-            if (fullStatusRequest.RequestType != Response.ParseType(response))
-                throw new McQueryWrongResponseException(fullStatusRequest, response);
-            
-            var fullStatus = Response.ParseFullState(response);
-            return fullStatus;
+                    // todo: causes receiver to skip package. Rewrite to automatic pick response by raw
+                    if (fullStatusRequest.RequestType != Response.ParseType(response))
+                        throw new McQueryWrongResponseException(fullStatusRequest, response);
+                    
+                    var fullStatus = Response.ParseFullState(response);
+                    return fullStatus;
+                }
+
+                catch (ObjectDisposedException)
+                {
+                    ++times;
+
+                    if (times > 5)
+                    {
+                        throw;
+                    }
+                    
+                    Thread.Sleep(800);
+                }
+            }
         }
     }
 
