@@ -5,7 +5,7 @@ WARNING! Right now library in manual mode which means you should re-request chal
 
 # Example of using
 ```cs
-public static async Task<ServerState> DoSomething(IEnumerable<IpEndPoint> mcServersQueryEndPoints) {
+public static async void DoSomething(IEnumerable<IpEndPoint> mcServersQueryEndPoints) {
 	McQueryService service = new(5, 5000, 500, 1000);
 
 	var servers = mcServersQueryEndPoints.Select(service.RegistrateServer).ToList();
