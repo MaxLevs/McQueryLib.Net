@@ -3,13 +3,26 @@ using System.Collections.Generic;
 
 namespace MCQueryLib.Data
 {
-    public class ChallengeToken
+    public class ChallengeToken : IDisposable
     {
-        private readonly byte[] _challengeToken;
+        private byte[] _challengeToken;
+        private DateTime revokeDateTime;
+        public bool IsFine => _challengeToken != null && DateTime.Now < revokeDateTime;
+
+        public ChallengeToken()
+        {
+            _challengeToken = null;
+        }
 
         public ChallengeToken(byte[] challengeToken)
         {
-            _challengeToken = challengeToken;
+            UpdateToken(challengeToken);
+        }
+
+        public void UpdateToken(byte[] challengeToken)
+        {
+            _challengeToken = (byte[]) challengeToken.Clone();
+            revokeDateTime = DateTime.Now.AddMinutes(5);
         }
 
         public string GetString()
@@ -27,6 +40,33 @@ namespace MCQueryLib.Data
         public void WriteTo(List<byte> list)
         {
             list.AddRange(_challengeToken);
+        }
+
+        private bool disposed = false;
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool disposing)
+        {
+            if(!this.disposed)
+            {
+                if(disposing)
+                {
+
+                }
+
+                _challengeToken = null;
+
+                disposed = true;
+            }
+        }
+
+        ~ChallengeToken()
+        {
+            Dispose(disposing: true);
         }
     }
 }

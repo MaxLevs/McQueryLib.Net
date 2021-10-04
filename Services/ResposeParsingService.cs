@@ -7,15 +7,15 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using MCQueryLib.Data;
-using MCQueryLib.State;
+using MCQueryLib.Data.Packages.Responses;
 
-namespace MCQueryLib.Packages
+namespace MCQueryLib.Services
 {
 	/// <summary>
 	/// This class parses Minecraft Query response packages for getting data from it
 	/// Wiki: https://wiki.vg/Query
 	/// </summary>
-	public static class Response
+	public static class ResposeParsingService
 	{
 		public static byte ParseType(byte[] data)
 		{
@@ -35,10 +35,12 @@ namespace MCQueryLib.Packages
 		/// </summary>
 		/// <param name="data">byte[] package</param>
 		/// <returns>byte[] array which contains ChallengeToken as big-endian</returns>
-		public static byte[] ParseHandshake(byte[] data)
+		public static byte[] ParseHandshake(RawResponse rawResponse)
 		{
+			var data = (byte[]) rawResponse.RawData.Clone();
+
 			if (data.Length < 5) throw new IncorrectPackageDataException(data);
-			var response = BitConverter.GetBytes(int.Parse(Encoding.ASCII.GetString(data, 5, data.Length - 6)));
+			var response = BitConverter.GetBytes(int.Parse(Encoding.ASCII.GetString(data, 5, rawResponse.RawData.Length - 6)));
 			if (BitConverter.IsLittleEndian)
 			{
 				response = response.Reverse().ToArray();
@@ -47,8 +49,10 @@ namespace MCQueryLib.Packages
 			return response;
 		}
 
-		public static ServerBasicState ParseBasicState(byte[] data)
+		public static ServerBasicStateResponse ParseBasicState(RawResponse rawResponse)
 		{
+			var data = (byte[]) rawResponse.RawData.Clone();
+
 			if (data.Length <= 5)
 				throw new IncorrectPackageDataException(data);
 
@@ -87,22 +91,24 @@ namespace MCQueryLib.Packages
 				else sb.Append((char) currentByte);
 			}
 
-			var serverInfo = new ServerBasicState
-			{
-				Motd = statusValues.Dequeue(),
-				GameType = statusValues.Dequeue(),
-				Map = statusValues.Dequeue(),
-				NumPlayers = int.Parse(statusValues.Dequeue()),
-				MaxPlayers = int.Parse(statusValues.Dequeue()),
-				HostPort = port,
-				HostIp = statusValues.Dequeue(),
-			};
+			ServerBasicStateResponse serverInfo = new (
+				statusValues.Dequeue(),
+				statusValues.Dequeue(),
+				statusValues.Dequeue(),
+				int.Parse(statusValues.Dequeue()),
+				int.Parse(statusValues.Dequeue()),
+				port,
+				statusValues.Dequeue(),
+				(byte[]) data.Clone()
+			);
 
 			return serverInfo;
 		}
 
-		public static ServerFullState ParseFullState(byte[] data)
+		public static ServerFullStateResponse ParseFullState(RawResponse rawResponse)
 		{
+			var data = (byte[]) rawResponse.RawData.Clone();
+
 			var statusKeyValues = new Dictionary<string, string>();
 			var players = new List<string>();
 
@@ -155,20 +161,20 @@ namespace MCQueryLib.Packages
 				else sb.Append((char) currentByte);
 			}
 
-			ServerFullState fullState = new()
-			{
-				Motd = statusKeyValues["hostname"],
-				GameType = statusKeyValues["gametype"],
-				GameId = statusKeyValues["game_id"],
-				Version = statusKeyValues["version"],
-				Plugins = statusKeyValues["plugins"],
-				Map = statusKeyValues["map"],
-				NumPlayers = int.Parse(statusKeyValues["numplayers"]),
-				MaxPlayers = int.Parse(statusKeyValues["maxplayers"]),
-				PlayerList = players.ToArray(),
-				HostIp = statusKeyValues["hostip"],
-				HostPort = int.Parse(statusKeyValues["hostport"]),
-			};
+			ServerFullStateResponse fullState = new(
+				statusKeyValues["hostname"],
+				statusKeyValues["gametype"],
+				statusKeyValues["game_id"],
+				statusKeyValues["version"],
+				statusKeyValues["plugins"],
+				statusKeyValues["map"],
+				int.Parse(statusKeyValues["numplayers"]),
+				int.Parse(statusKeyValues["maxplayers"]),
+				players.ToArray(),
+				int.Parse(statusKeyValues["hostport"]),
+				statusKeyValues["hostip"],
+				(byte[])data.Clone()
+			);
 
 			return fullState;
 		}

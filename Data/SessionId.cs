@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace MCQueryLib.Data
@@ -40,6 +41,16 @@ namespace MCQueryLib.Data
         public void WriteTo(List<byte> list)
         {
             list.AddRange(_sessionId);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is SessionId anotherSessionId && _sessionId.SequenceEqual(anotherSessionId._sessionId);
+        }
+
+        public override int GetHashCode()
+        {
+            return BitConverter.ToInt32(_sessionId, 0);
         }
     }
 }
