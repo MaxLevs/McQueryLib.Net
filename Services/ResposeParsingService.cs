@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -51,133 +52,93 @@ namespace MCQueryLib.Services
 
 		public static ServerBasicStateResponse ParseBasicState(RawResponse rawResponse)
 		{
-			var data = (byte[]) rawResponse.RawData.Clone();
+			if (rawResponse.RawData.Length <= 5)
+				throw new IncorrectPackageDataException(rawResponse.RawData);
 
-			if (data.Length <= 5)
-				throw new IncorrectPackageDataException(data);
+			SequenceReader<byte> reader = new(new ReadOnlySequence<byte>(rawResponse.RawData));
+			reader.Advance(5); // Skip Type + SessionId
 
-			var statusValues = new Queue<string>();
-			short port = -1;
+			var motd = ReadString(ref reader);
+            var gameType = ReadString(ref reader);
+            var map = ReadString(ref reader);
+            var numPlayers = int.Parse(ReadString(ref reader));
+            var maxPlayers = int.Parse(ReadString(ref reader));
 
-			data = data.Skip(5).ToArray(); // Skip Type + SessionId
-			var stream = new MemoryStream(data);
+            if (!reader.TryReadLittleEndian(out short port))
+                throw new IncorrectPackageDataException(rawResponse.RawData);
 
-			var sb = new StringBuilder();
-			int currentByte;
-			int counter = 0;
-			while ((currentByte = stream.ReadByte()) != -1)
-			{
-				if (counter > 6) break;
-
-				if (counter == 5)
-				{
-					byte[] portBuffer = {(byte) currentByte, (byte) stream.ReadByte()};
-					if (!BitConverter.IsLittleEndian)
-						portBuffer = portBuffer.Reverse().ToArray();
-
-					port = BitConverter.ToInt16(portBuffer); // Little-endian short
-					counter++;
-
-					continue;
-				}
-
-				if (currentByte == 0x00)
-				{
-					string fieldValue = sb.ToString();
-					statusValues.Enqueue(fieldValue);
-					sb.Clear();
-					counter++;
-				}
-				else sb.Append((char) currentByte);
-			}
+            var hostIp = ReadString(ref reader);
 
 			ServerBasicStateResponse serverInfo = new (
-				statusValues.Dequeue(),
-				statusValues.Dequeue(),
-				statusValues.Dequeue(),
-				int.Parse(statusValues.Dequeue()),
-				int.Parse(statusValues.Dequeue()),
-				port,
-				statusValues.Dequeue(),
-				(byte[]) data.Clone()
+				motd: motd,
+				gameType: gameType,
+				map: map,
+				numPlayers: numPlayers,
+				maxPlayers: maxPlayers,
+				hostPort: port,
+				hostIp: hostIp,
+				rawData: (byte[])rawResponse.RawData.Clone()
 			);
 
 			return serverInfo;
 		}
 
+		private static readonly byte[] constant1 = new byte[] { 0x73, 0x70, 0x6C, 0x69, 0x74, 0x6E, 0x75, 0x6D, 0x00, 0x80, 0x00 };
+		private static readonly byte[] constant2 = new byte[] { 0x01, 0x70, 0x6C, 0x61, 0x79, 0x65, 0x72, 0x5F, 0x00, 0x00 };
 		public static ServerFullStateResponse ParseFullState(RawResponse rawResponse)
 		{
-			var data = (byte[]) rawResponse.RawData.Clone();
+			if (rawResponse.RawData.Length <= 5)
+				throw new IncorrectPackageDataException(rawResponse.RawData);
+
+			var reader = new SequenceReader<byte>(new ReadOnlySequence<byte>(rawResponse.RawData));
+			reader.Advance(5); // Read Type + SessionID
+
+			if (!reader.IsNext(constant1, advancePast: true))
+				throw new IncorrectPackageDataException(rawResponse.RawData);
 
 			var statusKeyValues = new Dictionary<string, string>();
+			while (!reader.IsNext(0, advancePast: true))
+			{
+				var key = ReadString(ref reader);
+				var value = ReadString(ref reader);
+				statusKeyValues.Add(key, value);
+			}
+
+			if (!reader.IsNext(constant2, advancePast: true)) // Padding: 10 bytes constant
+				throw new IncorrectPackageDataException(rawResponse.RawData);
+
 			var players = new List<string>();
-
-			var buffer = new byte[256];
-			Stream stream = new MemoryStream(data);
-
-			stream.Read(buffer, 0, 5); // Read Type + SessionID
-			stream.Read(buffer, 0, 11); // Padding: 11 bytes constant
-			var constant1 = new byte[] {0x73, 0x70, 0x6C, 0x69, 0x74, 0x6E, 0x75, 0x6D, 0x00, 0x80, 0x00};
-			for (int i = 0; i < constant1.Length; i++)
-				Debug.Assert(constant1[i] == buffer[i], "Byte mismatch at " + i + " Val :" + buffer[i]);
-
-			var sb = new StringBuilder();
-			string lastKey = string.Empty;
-			int currentByte;
-			while ((currentByte = stream.ReadByte()) != -1)
+			while (!reader.IsNext(0, advancePast: true))
 			{
-				if (currentByte == 0x00)
-				{
-					if (!string.IsNullOrEmpty(lastKey))
-					{
-						statusKeyValues.Add(lastKey, sb.ToString());
-						lastKey = string.Empty;
-					}
-					else
-					{
-						lastKey = sb.ToString();
-						if (string.IsNullOrEmpty(lastKey)) break;
-					}
-
-					sb.Clear();
-				}
-				else sb.Append((char) currentByte);
+				players.Add(ReadString(ref reader));
 			}
 
-			stream.Read(buffer, 0, 10); // Padding: 10 bytes constant
-			var constant2 = new byte[] {0x01, 0x70, 0x6C, 0x61, 0x79, 0x65, 0x72, 0x5F, 0x00, 0x00};
-			for (int i = 0; i < constant2.Length; i++)
-				Debug.Assert(constant2[i] == buffer[i], "Byte mismatch at " + i + " Val :" + buffer[i]);
-
-			while ((currentByte = stream.ReadByte()) != -1)
-			{
-				if (currentByte == 0x00)
-				{
-					var player = sb.ToString();
-					if (string.IsNullOrEmpty(player)) break;
-					players.Add(player);
-					sb.Clear();
-				}
-				else sb.Append((char) currentByte);
-			}
-
-			ServerFullStateResponse fullState = new(
-				statusKeyValues["hostname"],
-				statusKeyValues["gametype"],
-				statusKeyValues["game_id"],
-				statusKeyValues["version"],
-				statusKeyValues["plugins"],
-				statusKeyValues["map"],
-				int.Parse(statusKeyValues["numplayers"]),
-				int.Parse(statusKeyValues["maxplayers"]),
-				players.ToArray(),
-				int.Parse(statusKeyValues["hostport"]),
-				statusKeyValues["hostip"],
-				(byte[])data.Clone()
+			ServerFullStateResponse fullState = new
+			(
+				motd: statusKeyValues["hostname"],
+				gameType: statusKeyValues["gametype"],
+				gameId: statusKeyValues["game_id"],
+				version: statusKeyValues["version"],
+				plugins: statusKeyValues["plugins"],
+				map: statusKeyValues["map"],
+				numPlayers: int.Parse(statusKeyValues["numplayers"]),
+				maxPlayers: int.Parse(statusKeyValues["maxplayers"]),
+				playerList: players.ToArray(),
+				hostIp: statusKeyValues["hostip"],
+				hostPort: int.Parse(statusKeyValues["hostport"]),
+				rawData: (byte[])rawResponse.RawData.Clone()
 			);
 
 			return fullState;
 		}
+
+        private static string ReadString(ref SequenceReader<byte> reader)
+        {
+            if (!reader.TryReadTo(out ReadOnlySequence<byte> bytes, delimiter: 0, advancePastDelimiter: true))
+                throw new IncorrectPackageDataException("Zero byte not found", reader.Sequence.ToArray());
+
+            return Encoding.ASCII.GetString(bytes); // а точно ASCII? Может, Utf8?
+        }
 	}
 
 	public class IncorrectPackageDataException : Exception
