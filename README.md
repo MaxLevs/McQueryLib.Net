@@ -5,10 +5,25 @@ WARNING! Right now library in manual mode which means you should re-request chal
 
 # Example of using
 ```cs
-public static async Task<ServerState> DoSomething(IPAddress host, int port) {
-    var mcQuery = new McQuery(host, port, new Random());
-    mcQuery.InitSocket();
-    await mcQuery.GetHandshake();
-    return await mcQuery.GetFullStatus();
+public static async Task<ServerState> DoSomething(IEnumerable<IpEndPoint> mcServersQueryEndPoints) {
+	McQueryService service = new(5, 5000, 500, 1000);
+
+	var servers = mcServersQueryEndPoints.Select(service.RegistrateServer).ToList();
+
+	List<Task> tasks = new();
+
+	foreach(var server in servers)
+	{
+		tasks.Add(service.GetBasicStatus(server));
+		tasks.Add(service.GetFullStatus(server));
+	}
+
+	Task.WaitAll(tasks.ToArray());
+
+	foreach(Task<IResponse> task in tasks)
+	{
+		Console.WriteLine((await task).ToString());
+		Console.WriteLine();
+	}
 }
 ```
