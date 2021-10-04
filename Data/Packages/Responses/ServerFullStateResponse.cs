@@ -5,7 +5,8 @@ namespace MCQueryLib.Data.Packages.Responses
     /// </summary>
     public class ServerFullStateResponse : IResponse
     {
-        public ServerFullStateResponse(string motd,
+        public ServerFullStateResponse(SessionId sessionId,
+                                       string motd,
                                        string gameType,
                                        string gameId,
                                        string version,
@@ -18,6 +19,7 @@ namespace MCQueryLib.Data.Packages.Responses
                                        string hostIp,
                                        byte[] rawData)
         {
+            SessionId = sessionId;
             Motd = motd;
             GameType = gameType;
             GameId = gameId;
@@ -31,6 +33,8 @@ namespace MCQueryLib.Data.Packages.Responses
             HostIp = hostIp;
             RawData = rawData;
         }
+
+        public SessionId SessionId { get; }
 
         public string Motd { get; }
         public string GameType { get; }
@@ -49,6 +53,7 @@ namespace MCQueryLib.Data.Packages.Responses
         public override string ToString()
         {
             return "FullStatus\n" +
+                   $"| {nameof(SessionId)}: {SessionId.GetString()}\n" +
                    $"| {nameof(Motd)}: {Motd}\n" +
                    $"| {nameof(GameType)}: {GameType}\n" +
                    $"| {nameof(GameId)}: {GameId}\n" +

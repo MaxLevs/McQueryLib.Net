@@ -2,8 +2,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -23,18 +21,20 @@ namespace MCQueryLib.Services
 			return data[0];
 		}
 
-		public static SessionId ParseSessionId(byte[] data)
+		public static SessionId ParseSessionId(ref SequenceReader<byte> reader)
 		{
-			if (data.Length < 1) throw new IncorrectPackageDataException(data);
+			if (reader.UnreadSequence.Length < 4) throw new IncorrectPackageDataException(reader.Sequence.ToArray());
 			var sessionIdBytes = new byte[4];
-			Buffer.BlockCopy(data, 1, sessionIdBytes, 0, 4);
-			return new SessionId(sessionIdBytes);
+			Span<byte> sessionIdSpan = new(sessionIdBytes);
+			reader.TryCopyTo(sessionIdSpan);
+			reader.Advance(4);
+			return new SessionId(sessionIdSpan.ToArray());
 		}
 
 		/// <summary>
 		/// Parses response package and returns ChallengeToken
 		/// </summary>
-		/// <param name="data">byte[] package</param>
+		/// <param name="rawResponse">RawResponce package</param>
 		/// <returns>byte[] array which contains ChallengeToken as big-endian</returns>
 		public static byte[] ParseHandshake(RawResponse rawResponse)
 		{
@@ -56,7 +56,9 @@ namespace MCQueryLib.Services
 				throw new IncorrectPackageDataException(rawResponse.RawData);
 
 			SequenceReader<byte> reader = new(new ReadOnlySequence<byte>(rawResponse.RawData));
-			reader.Advance(5); // Skip Type + SessionId
+			reader.Advance(1); // Skip Type
+
+			var sessionId = ParseSessionId(ref reader);
 
 			var motd = ReadString(ref reader);
             var gameType = ReadString(ref reader);
@@ -70,6 +72,7 @@ namespace MCQueryLib.Services
             var hostIp = ReadString(ref reader);
 
 			ServerBasicStateResponse serverInfo = new (
+				sessionId: sessionId,
 				motd: motd,
 				gameType: gameType,
 				map: map,
@@ -91,7 +94,9 @@ namespace MCQueryLib.Services
 				throw new IncorrectPackageDataException(rawResponse.RawData);
 
 			var reader = new SequenceReader<byte>(new ReadOnlySequence<byte>(rawResponse.RawData));
-			reader.Advance(5); // Read Type + SessionID
+			reader.Advance(1); // Skip Type
+
+			var sessionId = ParseSessionId(ref reader);
 
 			if (!reader.IsNext(constant1, advancePast: true))
 				throw new IncorrectPackageDataException(rawResponse.RawData);
@@ -115,6 +120,7 @@ namespace MCQueryLib.Services
 
 			ServerFullStateResponse fullState = new
 			(
+				sessionId: sessionId,
 				motd: statusKeyValues["hostname"],
 				gameType: statusKeyValues["gametype"],
 				gameId: statusKeyValues["game_id"],
