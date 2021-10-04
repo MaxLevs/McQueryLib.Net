@@ -6,6 +6,7 @@ namespace MCQueryLib.Data
     public class ChallengeToken : IDisposable
     {
         private byte[] _challengeToken;
+        private readonly int alifePeriod = 30000; // Milliseconds before revoking
         private DateTime revokeDateTime;
         public bool IsFine => _challengeToken != null && DateTime.Now < revokeDateTime;
 
@@ -22,7 +23,7 @@ namespace MCQueryLib.Data
         public void UpdateToken(byte[] challengeToken)
         {
             _challengeToken = (byte[]) challengeToken.Clone();
-            revokeDateTime = DateTime.Now.AddMinutes(5);
+            revokeDateTime = DateTime.Now.AddMilliseconds(alifePeriod);
         }
 
         public string GetString()
