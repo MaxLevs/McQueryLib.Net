@@ -61,17 +61,18 @@ namespace MCQueryLib.Services
 			var sessionId = ParseSessionId(ref reader);
 
 			var motd = ReadString(ref reader);
-            var gameType = ReadString(ref reader);
-            var map = ReadString(ref reader);
-            var numPlayers = int.Parse(ReadString(ref reader));
-            var maxPlayers = int.Parse(ReadString(ref reader));
+			var gameType = ReadString(ref reader);
+			var map = ReadString(ref reader);
+			var numPlayers = int.Parse(ReadString(ref reader));
+			var maxPlayers = int.Parse(ReadString(ref reader));
 
-            if (!reader.TryReadLittleEndian(out short port))
-                throw new IncorrectPackageDataException(rawResponse.RawData);
+			if (!reader.TryReadLittleEndian(out short port))
+				throw new IncorrectPackageDataException(rawResponse.RawData);
 
-            var hostIp = ReadString(ref reader);
+			var hostIp = ReadString(ref reader);
 
 			ServerBasicStateResponse serverInfo = new (
+				serverUUID: rawResponse.ServerUUID,
 				sessionId: sessionId,
 				motd: motd,
 				gameType: gameType,
@@ -120,6 +121,7 @@ namespace MCQueryLib.Services
 
 			ServerFullStateResponse fullState = new
 			(
+				serverUUID: rawResponse.ServerUUID,
 				sessionId: sessionId,
 				motd: statusKeyValues["hostname"],
 				gameType: statusKeyValues["gametype"],
@@ -138,13 +140,13 @@ namespace MCQueryLib.Services
 			return fullState;
 		}
 
-        private static string ReadString(ref SequenceReader<byte> reader)
-        {
-            if (!reader.TryReadTo(out ReadOnlySequence<byte> bytes, delimiter: 0, advancePastDelimiter: true))
-                throw new IncorrectPackageDataException("Zero byte not found", reader.Sequence.ToArray());
+		private static string ReadString(ref SequenceReader<byte> reader)
+		{
+			if (!reader.TryReadTo(out ReadOnlySequence<byte> bytes, delimiter: 0, advancePastDelimiter: true))
+				throw new IncorrectPackageDataException("Zero byte not found", reader.Sequence.ToArray());
 
-            return Encoding.ASCII.GetString(bytes); // а точно ASCII? Может, Utf8?
-        }
+			return Encoding.ASCII.GetString(bytes); // а точно ASCII? Может, Utf8?
+		}
 	}
 
 	public class IncorrectPackageDataException : Exception

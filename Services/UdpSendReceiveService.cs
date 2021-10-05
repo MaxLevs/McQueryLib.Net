@@ -12,66 +12,66 @@ using MCQueryLib.Data.Packages.Responses;
 namespace MCQueryLib.Services
 {
 
-    // todo: add resend N times before returning TimeoutResponce
-    // todo: add cancellation token support
-    public class UdpSendReceiveService
-    {
-        public UdpSendReceiveService(int receiveAwaitInterval)
-        {
-            ReceiveAwaitInterval = receiveAwaitInterval;
-        }
+	// todo: add resend N times before returning TimeoutResponce
+	// todo: add cancellation token support
+	public class UdpSendReceiveService
+	{
+		public UdpSendReceiveService(int receiveAwaitInterval)
+		{
+			ReceiveAwaitInterval = receiveAwaitInterval;
+		}
 
-        public int ReceiveAwaitInterval { get; set; }
+		public int ReceiveAwaitInterval { get; set; }
 
-        public async Task<IResponse> SendReceive(Server server, Request request)
-        {
-            var client = server.UdpClient;
+		public async Task<IResponse> SendReceive(Server server, Request request)
+		{
+			var client = server.UdpClient;
 
-            IPEndPoint ipEndPoint = null;
-            byte[] response = null;
+			IPEndPoint ipEndPoint = null;
+			byte[] response = null;
 
-            await server.UdpClientSemaphoreSlim.WaitAsync();
-            await server.UdpClient.SendAsync(request.RawRequestData, request.RawRequestData.Length);
-            IAsyncResult responseToken;
+			await server.UdpClientSemaphoreSlim.WaitAsync();
+			await server.UdpClient.SendAsync(request.RawRequestData, request.RawRequestData.Length);
+			IAsyncResult responseToken;
 
-            try
-            {
-                responseToken = server.UdpClient.BeginReceive(null, null);
-            }
-            catch (SocketException)
-            {
-                server.UdpClientSemaphoreSlim.Release();
-                return new TimeoutResponse();
-            }
+			try
+			{
+				responseToken = server.UdpClient.BeginReceive(null, null);
+			}
+			catch (SocketException)
+			{
+				server.UdpClientSemaphoreSlim.Release();
+				return new TimeoutResponse(server.UUID);
+			}
 
-            responseToken.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(ReceiveAwaitInterval));
-            if (responseToken.IsCompleted)
-            {
-                try
-                {
-                    response = server.UdpClient.EndReceive(responseToken, ref ipEndPoint);
-                }
+			responseToken.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(ReceiveAwaitInterval));
+			if (responseToken.IsCompleted)
+			{
+				try
+				{
+					response = server.UdpClient.EndReceive(responseToken, ref ipEndPoint);
+				}
 
-                catch (Exception)
-                {
-                    server.UdpClientSemaphoreSlim.Release();
-                    return new TimeoutResponse();
-                }
-            }
-            else
-            {
-                server.UdpClientSemaphoreSlim.Release();
-                return new TimeoutResponse();
-            }
+				catch (Exception)
+				{
+					server.UdpClientSemaphoreSlim.Release();
+					return new TimeoutResponse(server.UUID);
+				}
+			}
+			else
+			{
+				server.UdpClientSemaphoreSlim.Release();
+				return new TimeoutResponse(server.UUID);
+			}
 
-            if (response == null)
-            {
-                server.UdpClientSemaphoreSlim.Release();
-                return new TimeoutResponse();
-            }
+			if (response == null)
+			{
+				server.UdpClientSemaphoreSlim.Release();
+				return new TimeoutResponse(server.UUID);
+			}
 
-            server.UdpClientSemaphoreSlim.Release();
-            return new RawResponse(response);
-        }
-    }
+			server.UdpClientSemaphoreSlim.Release();
+			return new RawResponse(server.UUID, response);
+		}
+	}
 }

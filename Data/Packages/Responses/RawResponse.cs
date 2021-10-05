@@ -6,13 +6,15 @@ using System.Threading.Tasks;
 
 namespace MCQueryLib.Data.Packages.Responses
 {
-    public class RawResponse : IResponse
-    {
-        public byte[] RawData { get; }
+	public class RawResponse : IResponse
+	{
+		public RawResponse(Guid serverUUID, byte[] rawData)
+		{
+			ServerUUID = serverUUID;
+			RawData = rawData;
+		}
 
-        public RawResponse(byte[] rawData)
-        {
-            RawData = rawData;
-        }
-    }
+		public Guid ServerUUID { get; }
+		public byte[] RawData { get; }
+	}
 }
