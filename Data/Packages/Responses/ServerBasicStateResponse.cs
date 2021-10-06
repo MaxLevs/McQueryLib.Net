@@ -46,6 +46,7 @@ namespace MCQueryLib.Data.Packages.Responses
 		public override string ToString()
 		{
 			return "BasicStatus\n" +
+				   $"| {nameof(ServerUUID)}: {ServerUUID}\n" +
 				   $"| {nameof(SessionId)}: {SessionId.GetString()}\n" +
 				   $"| {nameof(Motd)}: {Motd}\n" +
 				   $"| {nameof(GameType)}: {GameType}\n" +

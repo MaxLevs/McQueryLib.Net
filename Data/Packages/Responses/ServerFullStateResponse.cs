@@ -58,6 +58,7 @@ namespace MCQueryLib.Data.Packages.Responses
 		public override string ToString()
 		{
 			return "FullStatus\n" +
+				   $"| {nameof(ServerUUID)}: {ServerUUID}\n" +
 				   $"| {nameof(SessionId)}: {SessionId.GetString()}\n" +
 				   $"| {nameof(Motd)}: {Motd}\n" +
 				   $"| {nameof(GameType)}: {GameType}\n" +
