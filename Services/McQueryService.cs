@@ -5,18 +5,21 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using MCQueryLib.Data;
-using MCQueryLib.Data.Packages;
 using MCQueryLib.Data.Packages.Responses;
 
 namespace MCQueryLib.Services
 {
-	public class McQueryService
+	public class McQueryService : IDisposable
 	{
 
-		public McQueryService(Random random, uint maxTriesBeforeSocketInvalidate, int receiveAwaitInterval, int retryAwayitShortInteval, int retryAwaitLongInterval)
+		public McQueryService(Random random,
+						uint maxTriesBeforeSocketInvalidate,
+						int receiveAwaitInterval,
+						int retryAwayitShortInteval,
+						int retryAwaitLongInterval)
 		{
 			sessionIdProviderService = new SessionIdProviderService(random);
-			ServersTimeoutCounter = new();
+			ServersTimeoutCounters = new();
 			udpService = new UdpSendReceiveService(receiveAwaitInterval);
 
 			MaxTriesBeforeSocketInvalidate = maxTriesBeforeSocketInvalidate;
@@ -24,14 +27,17 @@ namespace MCQueryLib.Services
 			RetryAwaitLongInterval = retryAwaitLongInterval;
 		}
 
-		public McQueryService(uint maxTriesBeforeSocketInvalidate, int receiveAwaitInterval, int retryAwayitShortInteval, int retryAwaitLongInterval) 
+		public McQueryService(uint maxTriesBeforeSocketInvalidate,
+						int receiveAwaitInterval,
+						int retryAwayitShortInteval,
+						int retryAwaitLongInterval) 
 			: this(new Random(), maxTriesBeforeSocketInvalidate, receiveAwaitInterval, retryAwayitShortInteval, retryAwaitLongInterval)
 		{
 		}
 
 		private readonly SessionIdProviderService sessionIdProviderService;
 		private readonly UdpSendReceiveService udpService;
-		private Dictionary<Server, int> ServersTimeoutCounter { get; set; }
+		private Dictionary<Server, int> ServersTimeoutCounters { get; set; }
 		public uint MaxTriesBeforeSocketInvalidate { get; set; }
 		public int RetryAwaitShortInterval { get; set; }
 		public int RetryAwaitLongInterval { get; set; }
@@ -40,19 +46,19 @@ namespace MCQueryLib.Services
 		{
 			SessionId sessionId = sessionIdProviderService.GenerateRandomId();
 			Server server = new(sessionId, serverEndPoint.Address, serverEndPoint.Port);
-			ServersTimeoutCounter.Add(server, 0);
+			ServersTimeoutCounters.Add(server, 0);
 			return server;
 		}
 
 		public void DisposeServer(Server server)
 		{
-			ServersTimeoutCounter.Remove(server);
+			ServersTimeoutCounters.Remove(server);
 			server.Dispose();
 		}
 
 		private void ResetTimeoutCounter(Server server)
 		{
-			ServersTimeoutCounter[server] = 0;
+			ServersTimeoutCounters[server] = 0;
 		}
 
 		private async Task InvalidateChallengeToken(Server server)
@@ -66,7 +72,7 @@ namespace MCQueryLib.Services
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounter[server] > MaxTriesBeforeSocketInvalidate)
+					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -77,7 +83,7 @@ namespace MCQueryLib.Services
 						continue;
 					}
 
-					ServersTimeoutCounter[server]++;
+					ServersTimeoutCounters[server]++;
 					await Task.Delay(RetryAwaitShortInterval);
 					continue;
 				}
@@ -90,6 +96,7 @@ namespace MCQueryLib.Services
 			server.ChallengeToken.UpdateToken(challengeToken);
 		}
 
+		public async Task<IResponse> GetBasicStatusCommon(Server server) => await GetBasicStatus(server);
 		public async Task<ServerBasicStateResponse> GetBasicStatus(Server server)
 		{
 			if (!server.ChallengeToken.IsFine)
@@ -104,7 +111,7 @@ namespace MCQueryLib.Services
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounter[server] > MaxTriesBeforeSocketInvalidate)
+					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -116,7 +123,7 @@ namespace MCQueryLib.Services
 						continue;
 					}
 
-					ServersTimeoutCounter[server]++;
+					ServersTimeoutCounters[server]++;
 					await Task.Delay(RetryAwaitShortInterval);
 					continue;
 				}
@@ -128,6 +135,7 @@ namespace MCQueryLib.Services
 			return basicStateResponse;
 		}
 
+		public async Task<IResponse> GetFullStatusCommon(Server server) => await GetFullStatus(server);
 		public async Task<ServerFullStateResponse> GetFullStatus(Server server)
 		{
 			if (!server.ChallengeToken.IsFine)
@@ -135,14 +143,14 @@ namespace MCQueryLib.Services
 
 			IResponse response;
 
-			while(true)
+			while (true)
 			{
 				var request = RequestFormingService.GetFullStatusRequestPackage(server.SessionId, server.ChallengeToken);
 				response = await udpService.SendReceive(server, request);
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounter[server] > MaxTriesBeforeSocketInvalidate)
+					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -154,7 +162,7 @@ namespace MCQueryLib.Services
 						continue;
 					}
 
-					ServersTimeoutCounter[server]++;
+					ServersTimeoutCounters[server]++;
 					await Task.Delay(RetryAwaitShortInterval);
 					continue;
 				}
@@ -164,6 +172,36 @@ namespace MCQueryLib.Services
 
 			var fullStateResponse = ResposeParsingService.ParseFullState((RawResponse)response);
 			return fullStateResponse;
+		}
+
+		private bool disposed = false;
+		public void Dispose()
+		{
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
+
+		public void Dispose(bool disposing)
+		{
+			if(!this.disposed)
+			{
+				if(disposing)
+				{
+					foreach (var record in ServersTimeoutCounters)
+					{
+						record.Key.Dispose();
+					}
+				}
+
+				ServersTimeoutCounters.Clear();
+
+				disposed = true;
+			}
+		}
+
+		~McQueryService()
+		{
+			Dispose(disposing: true);
 		}
 	}
 }

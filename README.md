@@ -14,8 +14,8 @@ public static async void DoSomething(IEnumerable<IpEndPoint> mcServersQueryEndPo
 
 	foreach(var server in servers)
 	{
-		tasks.Add(service.GetBasicStatus(server));
-		tasks.Add(service.GetFullStatus(server));
+		tasks.Add(service.GetBasicStatusCommon(server));
+		tasks.Add(service.GetFullStatusCommon(server));
 	}
 
 	Task.WaitAll(tasks.ToArray());
