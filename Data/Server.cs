@@ -52,7 +52,6 @@ namespace MCQueryLib.Data
 				{
 					UdpClient.Dispose();
 					UdpClientSemaphoreSlim.Dispose();
-					ChallengeToken.Dispose();
 				}
 
 				disposed = true;

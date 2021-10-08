@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MCQueryLib.Data
 {
-	public class ChallengeToken : IDisposable
+	public class ChallengeToken
 	{
 		private byte[] _challengeToken;
 		private readonly int alifePeriod = 30000; // Milliseconds before revoking
@@ -41,33 +41,6 @@ namespace MCQueryLib.Data
 		public void WriteTo(List<byte> list)
 		{
 			list.AddRange(_challengeToken);
-		}
-
-		private bool disposed = false;
-		public void Dispose()
-		{
-			Dispose(disposing: true);
-			GC.SuppressFinalize(this);
-		}
-
-		public void Dispose(bool disposing)
-		{
-			if (!this.disposed)
-			{
-				if (disposing)
-				{
-
-				}
-
-				_challengeToken = null;
-
-				disposed = true;
-			}
-		}
-
-		~ChallengeToken()
-		{
-			Dispose(disposing: true);
 		}
 	}
 }
