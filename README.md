@@ -3,25 +3,25 @@ Library for .Net Core 5.0 which implements Minecraft Query protocol. You can use
 
 # Example of using
 ```cs
-public static async void DoSomething(IEnumerable<IpEndPoint> mcServersQueryEndPoints) {
+static async Task DoSomething(IEnumerable<IPEndPoint> mcServersEndPoints)
+{
 	McQueryService service = new(5, 5000, 500, 1000);
 
-	var servers = mcServersQueryEndPoints.Select(service.RegistrateServer).ToList();
+	List<Server> servers = mcServersEndPoints.Select(service.RegistrateServer).ToList();
 
-	List<Task> tasks = new();
-
-	foreach(var server in servers)
+	List<Task<IResponse>> requests = new();
+	foreach (Server server in servers)
 	{
-		tasks.Add(service.GetBasicStatusCommon(server));
-		tasks.Add(service.GetFullStatusCommon(server));
+		requests.Add(service.GetBasicStatusCommon(server));
+		requests.Add(service.GetFullStatusCommon(server));
 	}
 
-	Task.WaitAll(tasks.ToArray());
+	Task.WaitAll(requests.ToArray());
 
-	foreach(Task<IResponse> task in tasks)
+	foreach (Task<IResponse> request in requests)
 	{
-		Console.WriteLine((await task).ToString());
-		Console.WriteLine();
+		IResponse response = await request;
+		Console.WriteLine(response.ToString() + "\n");
 	}
 }
 ```
