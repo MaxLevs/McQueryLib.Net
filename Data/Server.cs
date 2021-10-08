@@ -67,12 +67,12 @@ namespace MCQueryLib.Data
 		public override bool Equals(object obj)
 		{
 			return obj is Server server &&
-				   EqualityComparer<SessionId>.Default.Equals(SessionId, server.SessionId);
+				   EqualityComparer<Guid>.Default.Equals(UUID, server.UUID);
 		}
 
 		public override int GetHashCode()
 		{
-			return SessionId.GetHashCode();
+			return UUID.GetHashCode();
 		}
 	}
 }
