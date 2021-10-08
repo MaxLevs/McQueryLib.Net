@@ -1,9 +1,9 @@
 #nullable enable
+using MCQueryLib.Data;
+using MCQueryLib.Data.Packages;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using MCQueryLib.Data;
-using MCQueryLib.Data.Packages;
 
 namespace MCQueryLib.Services
 {
@@ -16,7 +16,7 @@ namespace MCQueryLib.Services
 		private static readonly byte[] MagicConst = { 0xfe, 0xfd };
 		private static readonly byte[] ChallengeRequestConst = { 0x09 };
 		private static readonly byte[] StatusRequestConst = { 0x00 };
-		
+
 		public static Request HandshakeRequestPackage(SessionId sessionId)
 		{
 			var data = new List<byte>(224);
@@ -57,8 +57,8 @@ namespace MCQueryLib.Services
 			data.AddRange(StatusRequestConst);
 			sessionId.WriteTo(data);
 			challengeToken.WriteTo(data);
-			data.AddRange(new byte[] {0x00, 0x00, 0x00, 0x00}); // Padding
-			
+			data.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00 }); // Padding
+
 			var request = new Request(data.ToArray());
 			return request;
 		}

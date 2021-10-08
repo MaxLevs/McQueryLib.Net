@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using MCQueryLib.Data;
+﻿using MCQueryLib.Data;
 using MCQueryLib.Data.Packages;
 using MCQueryLib.Data.Packages.Responses;
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace MCQueryLib.Services
 {

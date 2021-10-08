@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MCQueryLib.Data
 {
@@ -12,7 +12,7 @@ namespace MCQueryLib.Data
 	{
 		private readonly byte[] _sessionId;
 
-		public SessionId (byte[] sessionId)
+		public SessionId(byte[] sessionId)
 		{
 			_sessionId = sessionId;
 		}

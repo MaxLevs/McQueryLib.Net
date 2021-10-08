@@ -1,12 +1,12 @@
 #nullable enable
+using MCQueryLib.Data;
+using MCQueryLib.Data.Packages.Responses;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
-using MCQueryLib.Data;
-using MCQueryLib.Data.Packages.Responses;
 
 namespace MCQueryLib.Services
 {
@@ -38,7 +38,7 @@ namespace MCQueryLib.Services
 		/// <returns>byte[] array which contains ChallengeToken as big-endian</returns>
 		public static byte[] ParseHandshake(RawResponse rawResponse)
 		{
-			var data = (byte[]) rawResponse.RawData.Clone();
+			var data = (byte[])rawResponse.RawData.Clone();
 
 			if (data.Length < 5) throw new IncorrectPackageDataException(data);
 			var response = BitConverter.GetBytes(int.Parse(Encoding.ASCII.GetString(data, 5, rawResponse.RawData.Length - 6)));
@@ -71,7 +71,7 @@ namespace MCQueryLib.Services
 
 			var hostIp = ReadString(ref reader);
 
-			ServerBasicStateResponse serverInfo = new (
+			ServerBasicStateResponse serverInfo = new(
 				serverUUID: rawResponse.ServerUUID,
 				sessionId: sessionId,
 				motd: motd,

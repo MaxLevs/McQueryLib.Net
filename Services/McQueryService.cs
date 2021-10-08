@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using MCQueryLib.Data;
+﻿using MCQueryLib.Data;
 using MCQueryLib.Data.Packages.Responses;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace MCQueryLib.Services
 {
@@ -30,7 +28,7 @@ namespace MCQueryLib.Services
 		public McQueryService(uint maxTriesBeforeSocketInvalidate,
 						int receiveAwaitInterval,
 						int retryAwayitShortInteval,
-						int retryAwaitLongInterval) 
+						int retryAwaitLongInterval)
 			: this(new Random(), maxTriesBeforeSocketInvalidate, receiveAwaitInterval, retryAwayitShortInteval, retryAwaitLongInterval)
 		{
 		}
@@ -66,13 +64,13 @@ namespace MCQueryLib.Services
 			var request = RequestFormingService.HandshakeRequestPackage(server.SessionId);
 			IResponse response;
 
-			while(true)
+			while (true)
 			{
 				response = await udpService.SendReceive(server, request);
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
+					if (ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -91,7 +89,7 @@ namespace MCQueryLib.Services
 				break;
 			}
 
-			byte[] challengeToken = ResposeParsingService.ParseHandshake((RawResponse) response);
+			byte[] challengeToken = ResposeParsingService.ParseHandshake((RawResponse)response);
 
 			server.ChallengeToken.UpdateToken(challengeToken);
 		}
@@ -111,7 +109,7 @@ namespace MCQueryLib.Services
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
+					if (ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -150,7 +148,7 @@ namespace MCQueryLib.Services
 
 				if (response is TimeoutResponse)
 				{
-					if(ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
+					if (ServersTimeoutCounters[server] > MaxTriesBeforeSocketInvalidate)
 					{
 						var delayTask = Task.Delay(RetryAwaitLongInterval);
 
@@ -183,9 +181,9 @@ namespace MCQueryLib.Services
 
 		public void Dispose(bool disposing)
 		{
-			if(!this.disposed)
+			if (!this.disposed)
 			{
-				if(disposing)
+				if (disposing)
 				{
 					foreach (var record in ServersTimeoutCounters)
 					{

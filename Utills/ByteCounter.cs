@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MCQueryLib.Utills
+﻿namespace MCQueryLib.Utills
 {
 	class ByteCounter
 	{
@@ -20,7 +14,7 @@ namespace MCQueryLib.Utills
 		{
 			for (int i = 0; i < _countUnits.Length; ++i)
 			{
-				if(_countUnits[i] < 0x0F)
+				if (_countUnits[i] < 0x0F)
 				{
 					_countUnits[i]++;
 					_countUnits.CopyTo(receiver, 0);
@@ -37,7 +31,7 @@ namespace MCQueryLib.Utills
 
 		public void Reset()
 		{
-			for(int i = 0; i < _countUnits.Length; ++i)
+			for (int i = 0; i < _countUnits.Length; ++i)
 			{
 				_countUnits[i] = 0;
 			}

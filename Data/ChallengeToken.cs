@@ -22,7 +22,7 @@ namespace MCQueryLib.Data
 
 		public void UpdateToken(byte[] challengeToken)
 		{
-			_challengeToken = (byte[]) challengeToken.Clone();
+			_challengeToken = (byte[])challengeToken.Clone();
 			revokeDateTime = DateTime.Now.AddMilliseconds(alifePeriod);
 		}
 
@@ -52,9 +52,9 @@ namespace MCQueryLib.Data
 
 		public void Dispose(bool disposing)
 		{
-			if(!this.disposed)
+			if (!this.disposed)
 			{
-				if(disposing)
+				if (disposing)
 				{
 
 				}

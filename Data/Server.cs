@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MCQueryLib.Data
 {
@@ -49,9 +46,9 @@ namespace MCQueryLib.Data
 
 		public void Dispose(bool disposing)
 		{
-			if(!this.disposed)
+			if (!this.disposed)
 			{
-				if(disposing)
+				if (disposing)
 				{
 					UdpClient.Dispose();
 					UdpClientSemaphoreSlim.Dispose();
