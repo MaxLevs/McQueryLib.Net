@@ -1,0 +1,40 @@
+﻿<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>MaxLevs</Authors>
+    <Copyright>Copyright (c) 2021 $(Authors)</Copyright>
+    <Description>
+      Library for .Net which implements Minecraft Query protocol. You can use it for getting statuses of a Minecraft server.
+    </Description>
+    <PackageTags>minecraft, query, client</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PathToRoot>../..</PathToRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(PathToRoot)/$(PackageReadmeFile)" Pack="true" PackagePath="/"/>
+    <None Include="$(PathToRoot)/images/$(PackageIcon)" Pack="true" PackagePath="/"/>
+  </ItemGroup>
+
+  <PropertyGroup Condition=" $(Version) == '' ">
+    <Version>0.0.0.0-dev</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(Configuration) == 'Release' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

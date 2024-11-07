@@ -1,5 +1,5 @@
 # McQueryLib.Net
-Library for .Net Core 5.0 which implements Minecraft Query protocol. You can use it for getting statuses of servers.
+Library for .Net which implements Minecraft Query protocol. You can use it for getting statuses of a Minecraft server.
 
 # Example of using
 ```cs
