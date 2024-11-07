@@ -7,11 +7,14 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <PropertyGroup>
     <Authors>MaxLevs</Authors>
-    <Copyright>Copyright (c) 2021 $(Authors)</Copyright>
+    <Copyright>Copyright (c) 2021-$([System.DateTime]::UtcNow.ToString('yyyy')) $(Authors)</Copyright>
     <Description>
       Library for .Net which implements Minecraft Query protocol. You can use it for getting statuses of a Minecraft server.
     </Description>
