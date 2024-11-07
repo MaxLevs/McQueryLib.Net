@@ -158,11 +158,6 @@ namespace MCQueryLib.Services
 			this.data = data;
 		}
 
-		protected IncorrectPackageDataException(SerializationInfo info, StreamingContext context, byte[] data) : base(info, context)
-		{
-			this.data = data;
-		}
-
 		public IncorrectPackageDataException(string? message, byte[] data) : base(message)
 		{
 			this.data = data;

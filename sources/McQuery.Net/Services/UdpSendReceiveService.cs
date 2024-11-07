@@ -22,10 +22,10 @@ namespace MCQueryLib.Services
 
 		public async Task<IResponse> SendReceive(Server server, Request request)
 		{
-			var client = server.UdpClient;
+			UdpClient client = server.UdpClient;
 
-			IPEndPoint ipEndPoint = null;
-			byte[] response = null;
+			IPEndPoint? ipEndPoint = null;
+			byte[]? response = null;
 
 			await server.UdpClientSemaphoreSlim.WaitAsync();
 			await server.UdpClient.SendAsync(request.RawRequestData, request.RawRequestData.Length);

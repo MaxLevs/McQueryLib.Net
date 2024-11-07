@@ -63,7 +63,7 @@ namespace MCQueryLib.Data
 			Dispose(disposing: true);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is Server server &&
 				   EqualityComparer<Guid>.Default.Equals(UUID, server.UUID);

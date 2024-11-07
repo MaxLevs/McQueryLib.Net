@@ -70,10 +70,6 @@ namespace MCQueryLib.Services
 		{
 		}
 
-		protected ChallengeTokenIsNullException(SerializationInfo info, StreamingContext context) : base(info, context)
-		{
-		}
-
 		public ChallengeTokenIsNullException(string? message) : base(message)
 		{
 		}

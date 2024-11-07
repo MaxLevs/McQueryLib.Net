@@ -34,7 +34,7 @@ namespace MCQueryLib.Data
 			list.AddRange(_sessionId);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is SessionId anotherSessionId && _sessionId.SequenceEqual(anotherSessionId._sessionId);
 		}
